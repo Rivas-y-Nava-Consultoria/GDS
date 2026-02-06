@@ -1,0 +1,41 @@
+2026-02-05 15:46:46,662 - GDSConnection - INFO - Creating projection test with node 15,500,169 and relationship types 7,261,457 in 623 ms
+2026-02-05 15:46:46,663 - OutliersPipeline - INFO - Starting Outliers Pipeline
+2026-02-05 15:46:46,815 - OutliersPipeline - INFO - Completed  degree centrality in 139 ms.
+2026-02-05 15:46:46,815 - OutliersPipeline - INFO - Added 15,500,169 node properties with the following distribution {'p99': 4.0, 'min': 0.0, 'max': 28171.1, 'mean': 0.9, 'p90': 1.0, 'p999': 11.0, 'p50': 1.0, 'p95': 2.0, 'p75': 1.0}.
+2026-02-05 15:46:46,815 - OutliersPipeline - INFO - Removing nodes with out relationships
+2026-02-05 15:46:48,278 - OutliersPipeline - INFO - Filtered projection created with 11,314,289 node and 7,261,457 relationships in 1430 ms
+2026-02-05 15:46:48,389 - OutliersPipeline - INFO - Completed WCC in 94 ms
+2026-02-05 15:46:48,389 - OutliersPipeline - INFO - Found 4,069,203 components and added 11,314,289 node properties with the following distribution {'p1': 2, 'max': 903719, 'p5': 2, 'p90': 3, 'p50': 2, 'p95': 4, 'p10': 2, 'p75': 3, 'p99': 7, 'p25': 2, 'min': 2, 'mean': 2.8, 'p999': 24}.
+2026-02-05 15:46:48,489 - OutliersPipeline - INFO - Completed data degree centrality in 87 ms.
+2026-02-05 15:46:48,489 - OutliersPipeline - INFO - Added 11,314,289 node properties with the following distribution {'p99': 4.0, 'min': 0.0, 'max': 28171.1, 'mean': 0.6, 'p90': 1.0, 'p999': 13.0, 'p50': 0.0, 'p95': 2.0, 'p75': 1.0}.
+2026-02-05 15:46:48,517 - OutliersPipeline - INFO - Completed asegurado degree centrality in 21 ms.
+2026-02-05 15:46:48,517 - OutliersPipeline - INFO - Added 11,314,289 node properties with the following distribution {'p99': 2.0, 'min': 0.0, 'max': 9.0, 'mean': 0.6, 'p90': 1.0, 'p999': 2.0, 'p50': 1.0, 'p95': 1.0, 'p75': 1.0}.
+2026-02-05 16:08:52,569 - GDSConnection - INFO - Creating projection test with node 15,500,169 and relationship types 7,261,457 in 660 ms
+2026-02-05 16:25:51,173 - GDSConnection - INFO - Creating projection test with node 15,500,169 and relationship types 7,261,457 in 634 ms
+2026-02-05 16:25:51,177 - OutliersPipeline - INFO - Starting Outliers Pipeline
+2026-02-05 16:25:51,323 - OutliersPipeline - INFO - Completed  degree centrality in 135 ms.
+2026-02-05 16:25:51,323 - OutliersPipeline - INFO - Added 15,500,169 node properties with the following distribution {'p99': 4.0, 'min': 0.0, 'max': 28171.1, 'mean': 0.9, 'p90': 1.0, 'p999': 11.0, 'p50': 1.0, 'p95': 2.0, 'p75': 1.0}.
+2026-02-05 16:25:51,323 - OutliersPipeline - INFO - Removing nodes with out relationships
+2026-02-05 16:25:52,822 - OutliersPipeline - INFO - Filtered projection created with 11,314,289 node and 7,261,457 relationships in 1486 ms
+2026-02-05 16:25:52,941 - OutliersPipeline - INFO - Completed WCC in 106 ms
+2026-02-05 16:25:52,941 - OutliersPipeline - INFO - Found 4,069,203 components and added 11,314,289 node properties with the following distribution {'p1': 2, 'max': 903719, 'p5': 2, 'p90': 3, 'p50': 2, 'p95': 4, 'p10': 2, 'p75': 3, 'p99': 7, 'p25': 2, 'min': 2, 'mean': 2.8, 'p999': 24}.
+2026-02-05 16:25:53,043 - OutliersPipeline - INFO - Completed data degree centrality in 90 ms.
+2026-02-05 16:25:53,043 - OutliersPipeline - INFO - Added 11,314,289 node properties with the following distribution {'p99': 4.0, 'min': 0.0, 'max': 28171.1, 'mean': 0.6, 'p90': 1.0, 'p999': 13.0, 'p50': 0.0, 'p95': 2.0, 'p75': 1.0}.
+2026-02-05 16:25:53,071 - OutliersPipeline - INFO - Completed asegurado degree centrality in 22 ms.
+2026-02-05 16:25:53,071 - OutliersPipeline - INFO - Added 11,314,289 node properties with the following distribution {'p99': 2.0, 'min': 0.0, 'max': 9.0, 'mean': 0.6, 'p90': 1.0, 'p999': 2.0, 'p50': 1.0, 'p95': 1.0, 'p75': 1.0}.
+2026-02-05 16:25:53,071 - OutliersPipeline - INFO - Writing degree property to database
+2026-02-05 16:26:54,195 - GDSConnection - INFO - Creating projection test with node 15,500,169 and relationship types 7,261,457 in 648 ms
+2026-02-05 16:26:54,200 - OutliersPipeline - INFO - Starting Outliers Pipeline
+2026-02-05 16:26:54,355 - OutliersPipeline - INFO - Completed  degree centrality in 143 ms.
+2026-02-05 16:26:54,355 - OutliersPipeline - INFO - Added 15,500,169 node properties with the following distribution {'p99': 4.0, 'min': 0.0, 'max': 28171.1, 'mean': 0.9, 'p90': 1.0, 'p999': 11.0, 'p50': 1.0, 'p95': 2.0, 'p75': 1.0}.
+2026-02-05 16:26:54,355 - OutliersPipeline - INFO - Removing nodes with out relationships
+2026-02-05 16:26:55,817 - OutliersPipeline - INFO - Filtered projection created with 11,314,289 node and 7,261,457 relationships in 1432 ms
+2026-02-05 16:26:55,933 - OutliersPipeline - INFO - Completed WCC in 96 ms
+2026-02-05 16:26:55,934 - OutliersPipeline - INFO - Found 4,069,203 components and added 11,314,289 node properties with the following distribution {'p1': 2, 'max': 903719, 'p5': 2, 'p90': 3, 'p50': 2, 'p95': 4, 'p10': 2, 'p75': 3, 'p99': 7, 'p25': 2, 'min': 2, 'mean': 2.8, 'p999': 24}.
+2026-02-05 16:26:56,036 - OutliersPipeline - INFO - Completed data degree centrality in 88 ms.
+2026-02-05 16:26:56,036 - OutliersPipeline - INFO - Added 11,314,289 node properties with the following distribution {'p99': 4.0, 'min': 0.0, 'max': 28171.1, 'mean': 0.6, 'p90': 1.0, 'p999': 13.0, 'p50': 0.0, 'p95': 2.0, 'p75': 1.0}.
+2026-02-05 16:26:56,071 - OutliersPipeline - INFO - Completed asegurado degree centrality in 28 ms.
+2026-02-05 16:26:56,071 - OutliersPipeline - INFO - Added 11,314,289 node properties with the following distribution {'p99': 2.0, 'min': 0.0, 'max': 9.0, 'mean': 0.6, 'p90': 1.0, 'p999': 2.0, 'p50': 1.0, 'p95': 1.0, 'p75': 1.0}.
+2026-02-05 16:26:56,071 - OutliersPipeline - INFO - Writing degree property to database
+2026-02-05 16:27:13,326 - OutliersPipeline - INFO - Writing Asegurado properties to database
+2026-02-05 16:27:27,415 - OutliersPipeline - INFO - Writing features nodes properties to database

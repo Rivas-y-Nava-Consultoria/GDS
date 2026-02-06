@@ -10,16 +10,24 @@ class GDSConnection:
     self.logger = get_logger('GDSConnection', level=logging.INFO)
     self.gds = GraphDataScience(uri, auth=(user, password), database=database)
   
+  def get_gds(self) -> GraphDataScience:
+    return self.gds
+  
   def close(self):
     self.gds.close()
 
   def create_projection(self, name: str, node_labels: List[str], relationship_types: List[str], concurrency = 48) -> Any:    
-    proj_stats, proj = self.gds.graph.project(
+    if self.gds.graph.exists(name)['exists']:
+      self.gds.graph.drop(name)
+    proj, proj_stats  = self.gds.graph.project(
         name,
         node_labels,
         relationship_types,
         readConcurrency=concurrency
     )
-
-    self.logger.info(proj_stats)
+    num_nodes = proj_stats['nodeCount']
+    num_relas = proj_stats['relationshipCount']
+    time = proj_stats['projectMillis']
+    message = f"Creating projection {name} with node {num_nodes:,.0f} and relationship types {num_relas:,.0f} in {time} ms"
+    self.logger.info(message)
     return proj
