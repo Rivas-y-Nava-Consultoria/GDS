@@ -1,0 +1,29 @@
+degreeAttributePropertyName: numeroAsegurados
+degreeAseguradoPropertyName: numeroData
+degreeProjectionName: degree
+degreeProjectionNodeLabels:
+  - AseguradoNuevo
+  - Telefono
+  - Calendario
+  - Domicilio
+  - RFC
+  - Email
+degreeProjectionRelationshipTypes:
+  - TIENE_TELEFONO
+  - NACIDO_EL
+  - TIENE_DOMICILIO
+  - TIENE_RFC
+  - TIENE_CORREO
+concurrency: 48
+cypher:
+  degreeTransform: |
+    CALL apoc.periodic.iterate(
+      "MATCH(n:{nodeLabel}) RETURN elementId(n) AS nodeId",
+      "MATCH (n:{nodeLabel}) WHERE elementId(n) = nodeId
+       SET n.{propertyName}Scaled = sqrt(n.{propertyName})
+      ",
+      {{
+        batchSize: 1000,
+        parallel: true
+      }}
+    )

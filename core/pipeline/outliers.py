@@ -12,9 +12,11 @@ This module is responsible for the following tasks:
     - Write the algorithm results to the Neo4j database
 """
 from graphdatascience import Graph
-from database.connector import GDSConnection
+from pyneoinstance import Neo4jInstance
+from .context import GDSConnection
 from utils.functions import get_logger
 import logging
+import os
 
 class OutliersPipeline:
   def __init__(
@@ -22,16 +24,19 @@ class OutliersPipeline:
       projection: Graph,
       data_degree_property: str,
       asegurado_degree_property: str,
-      concurrency: int
+      concurrency: int,
+      transform_query: str
       ):
     
     self.gds = gds
     self.projection = projection
     self.logger = get_logger('OutliersPipeline', level=logging.INFO)
+    self.transform_query = transform_query
+
     filter_name = "filtered_projection"
     labels = self.projection.node_labels()
-    features_labels = [l for l in labels if l != 'Asegurado']
-
+    features_labels = [l for l in labels if 'Asegurado' not in l]
+    asegurado_label = [l for l in labels if l not in features_labels]
     self.logger.info("Starting Outliers Pipeline")
     self.degree("degree","UNDIRECTED",concurrency)
     self.logger.info("Removing nodes with out relationships")
@@ -56,17 +61,17 @@ class OutliersPipeline:
     self.wcc("WccId","pre",concurrency)
     self.degree(data_degree_property, "REVERSE", concurrency)
     self.degree(asegurado_degree_property, "NATURAL",concurrency)
-    self.logger.info("Writing degree property to database")
-    self.gds.graph.nodeProperties.write(
-      self.projection,
-      ['degree'],
-      writeConcurrency=concurrency
-    )
-    self.logger.info("Writing Asegurado properties to database")
+    # self.logger.info("Writing degree property to database")
+    # self.gds.graph.nodeProperties.write(
+    #   self.projection,
+    #   ['degree'],
+    #   writeConcurrency=concurrency
+    # )
+    self.logger.info(f"Writing {asegurado_label[0]} properties to database")
     self.gds.graph.nodeProperties.write(
       self.projection,
       ['preWccId',asegurado_degree_property],
-      ['Asegurado'],
+      asegurado_label,
       writeConcurrency=concurrency
     )
     self.logger.info("Writing features nodes properties to database")
@@ -76,6 +81,21 @@ class OutliersPipeline:
       features_labels,
       writeConcurrency=concurrency
     )
+    self.projection.drop()
+    graph = Neo4jInstance(
+      os.getenv('NEO4J_URI'),
+      os.getenv('NEO4J_USER'),
+      os.getenv('NEO4J_PASSWORD')
+    )
+    for label in features_labels:
+      message = f"Transforming property {data_degree_property} for label {label}"
+      self.logger.info(message)
+      query = self.transform_query.format(
+         nodeLabel=label,
+         propertyName=data_degree_property
+         )
+    graph.execute_write_query(query, database=os.getenv('NEO4J_DATABASE'))
+    self.logger.info("Completed Outliers Pipeline")
 
   def wcc(self, property_name: str,type:str,concurrency: int):
     property=f"{type}{property_name}"
