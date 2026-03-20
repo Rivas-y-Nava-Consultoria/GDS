@@ -1,5 +1,6 @@
 from core import GDSConnection
 from core import OutliersPipeline
+from core import SimilarityPipeline
 from dotenv import load_dotenv
 import yaml
 import os
@@ -18,20 +19,15 @@ def main():
     config = yaml.safe_load(f)
  
   conn = GDSConnection(gds_uri, user, password, database)
-  gds = conn.get_gds()
-  projection = conn.create_projection(
-        config['degreeProjectionName'],
-        config['degreeProjectionNodeLabels'],
-        config['degreeProjectionRelationshipTypes'],
-        concurrency=config['concurrency']
-      )
-  outlier_pipeline = OutliersPipeline(
-     gds,
-     projection,
-     data_degree_property=config['degreeAttributePropertyName'],
-     asegurado_degree_property=config['degreeAseguradoPropertyName'],
-     concurrency=config['concurrency'],
-     transform_query=config['cypher']['degreeTransform'])
+  
+  OutliersPipeline(
+     conn,
+     config
+  )
+  SimilarityPipeline(
+      conn,
+      config
+  )
   conn.close()
 
 if __name__ == "__main__":

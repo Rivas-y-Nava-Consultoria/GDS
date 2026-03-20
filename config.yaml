@@ -1,6 +1,21 @@
 degreeAttributePropertyName: numeroAsegurados
 degreeAseguradoPropertyName: numeroData
 degreeProjectionName: degree
+similarityProjectionName: similarity
+louvainProjectionName: louvain
+embeddingDimension: 128
+embeddingPropertyName: embedding
+knnTopK: 25
+similarityThreshold: 0.65
+similarityRelaType: SHARES_PII_WITH
+dataSimilarityPropertyName: dataSimilarity
+dataSimilarityWeight: 0.65
+nameSimilarityWeight: 0.35
+knnSampleRate: 0.5
+confidenceThreshold: 0.75
+entidadAseguradoLabel: EntidadAsegurado
+embeddingIterationWeight:
+  - 1.0
 degreeProjectionNodeLabels:
   - AseguradoNuevo
   - Telefono
@@ -14,6 +29,18 @@ degreeProjectionRelationshipTypes:
   - TIENE_DOMICILIO
   - TIENE_RFC
   - TIENE_CORREO
+stds:
+  Telefono: 4.0
+  RFC: 4.0
+  Email: 3.0
+  Calendario: 3.0
+  Domicilio: 5.0
+ponderacion:
+  Telefono: 0.13
+  RFC: 0.35
+  Email: 0.13
+  Calendario: 0.15
+  Domicilio: 0.24
 concurrency: 48
 cypher:
   degreeTransform: |
@@ -25,5 +52,386 @@ cypher:
       {{
         batchSize: 1000,
         parallel: true
+      }}
+    )
+  validCharacteristics: |
+    CALL apoc.periodic.iterate(
+      "MATCH(n:{nodeLabel})
+       WITH
+        avg(n.numeroAseguradosScaled) AS mean,
+        stDevP(n.numeroAseguradosScaled) AS std
+       WITH mean,std,round(mean + {std}*std,0) AS threshold
+       MATCH(n:{nodeLabel})
+       WHERE n.numeroAseguradosScaled <= threshold
+       RETURN elementId(n) AS nodeId",
+      "MATCH (n:{nodeLabel}) WHERE elementId(n) = nodeId
+       SET n:Valid{nodeLabel}",
+      {{
+        batchSize: 1000,
+        parallel: true
+      }}
+    )
+  outlierStats: |
+    WITH 'Telefono' AS feature
+    CALL(){
+      MATCH(:ValidTelefono) RETURN count(*) AS numValid
+    }
+    WITH feature, numValid
+    CALL(){
+      MATCH(n:Telefono) 
+      WHERE NOT n:ValidTelefono
+      RETURN count(*) AS numOutliet
+    }
+    CALL(){
+      MATCH(:Telefono) RETURN count(*) AS total
+    }
+    RETURN feature,total,numValid,numOutliet
+    UNION
+    WITH 'Domicilio' AS feature
+    CALL(){
+      MATCH(:ValidDomicilio) RETURN count(*) AS numValid
+    }
+    WITH feature, numValid
+    CALL(){
+      MATCH(n:Domicilio) 
+      WHERE NOT n:ValidDomicilio
+      RETURN count(*) AS numOutliet
+    }
+    CALL(){
+      MATCH(:Domicilio) RETURN count(*) AS total
+    }
+    RETURN feature,total,numValid,numOutliet
+    UNION
+    WITH 'RFC' AS feature
+    CALL(){
+      MATCH(:ValidRFC) RETURN count(*) AS numValid
+    }
+    WITH feature, numValid
+    CALL(){
+      MATCH(n:RFC) 
+      WHERE NOT n:ValidRFC
+      RETURN count(*) AS numOutliet
+    }
+    CALL(){
+      MATCH(:RFC) RETURN count(*) AS total
+    }
+    RETURN feature,total,numValid,numOutliet
+    UNION
+    WITH 'Email' AS feature
+    CALL(){
+      MATCH(:ValidEmail) RETURN count(*) AS numValid
+    }
+    WITH feature, numValid
+    CALL(){
+      MATCH(n:Email) 
+      WHERE NOT n:ValidEmail
+      RETURN count(*) AS numOutliet
+    }
+    CALL(){
+      MATCH(:Email) RETURN count(*) AS total
+    }
+    RETURN feature,total,numValid,numOutliet
+    UNION
+    WITH 'Calendario' AS feature
+    CALL(){
+      MATCH(:ValidCalendario) RETURN count(*) AS numValid
+    }
+    WITH feature, numValid
+    CALL(){
+      MATCH(n:Calendario) 
+      WHERE NOT n:ValidCalendario
+      RETURN count(*) AS numOutliet
+    }
+    CALL(){
+      MATCH(:Calendario) RETURN count(*) AS total
+    }
+    RETURN feature,total,numValid,numOutliet
+  wccDistribution: |
+    MATCH(n:AseguradoNuevo)
+    WITH n.{wccType}WccId AS componentId,count(*) AS componentSize
+    RETURN componentId,componentSize
+    ORDER BY componentSize DESC
+  similarityProjection: |
+    CYPHER runtime=parallel
+    CALL(){{
+      MATCH(s:AseguradoNuevo)-[:TIENE_TELEFONO]->(t:ValidTelefono)
+      WITH *,
+        CASE t.numeroAsegurados
+          WHEN 1 THEN 1
+          ELSE 1.0/log(t.numeroAsegurados)  
+        END AS postWeight
+      WITH *, {ponderacionTelefono} AS preWeight
+      RETURN s AS source,round(preWeight*postWeight,4) AS weight,t AS target
+      UNION
+      MATCH(s:AseguradoNuevo)-[:TIENE_DOMICILIO]->(t:ValidDomicilio)
+      WITH *,
+        CASE t.numeroAsegurados
+          WHEN 1 THEN 1
+          ELSE 1.0/log(t.numeroAsegurados)  
+        END AS postWeight
+      WITH *, {ponderacionDomicilio} AS preWeight
+      RETURN s AS source,round(preWeight*postWeight,4) AS weight,t AS target
+      UNION
+      MATCH(s:AseguradoNuevo)-[:NACIDO_EL]->(t:ValidCalendario)
+      WITH *,
+        CASE t.numeroAsegurados
+          WHEN 1 THEN 1
+          ELSE 1.0/log(t.numeroAsegurados)  
+        END AS postWeight
+      WITH *, {ponderacionCalendario} AS preWeight
+      RETURN s AS source,round(preWeight*postWeight,4) AS weight,t AS target
+      UNION
+      MATCH(s:AseguradoNuevo)-[:TIENE_CORREO]->(t:ValidEmail)
+      WITH *,
+        CASE t.numeroAsegurados
+          WHEN 1 THEN 1
+          ELSE 1.0/log(t.numeroAsegurados)  
+        END AS postWeight
+      WITH *, {ponderacionEmail} AS preWeight
+      RETURN s AS source,round(preWeight*postWeight,4) AS weight,t AS target
+      UNION
+      MATCH(s:AseguradoNuevo)-[r:TIENE_RFC]->(t:ValidRFC)
+      WITH *,
+        CASE t.numeroAsegurados
+          WHEN 1 THEN 1
+          ELSE 1.0/log(t.numeroAsegurados)  
+        END AS postWeight
+      WITH *, {ponderacionRFC} AS preWeight
+      RETURN s AS source,round(preWeight*postWeight*(r.ponderacion/100),4) AS weight,t AS target
+    }}
+    WITH gds.graph.project(
+      '{projName}',
+      source,
+      target,
+      {{
+        sourceNodeLabels: labels(source),
+        targetNodeLabels: labels(target),
+        relationshipProperties:{{weight:weight}}
+      }},
+      {{
+        concurrency: {concurrency}
+      }}
+    ) AS g
+    RETURN 
+      g.graphName AS graphName,
+      g.nodeCount AS nodeCount,
+      g.relationshipCount AS relationshipCount,
+      g.projectMillis AS projectMillis
+  explainabilty: |
+    CALL apoc.periodic.iterate(
+      "MATCH(p1:{nodeLabel})-[r:{relaType}]->(p2)
+      CALL(p1){{
+          MATCH(p1)-[r1:TIENE_NOMBRE_COMPLETO]->(n)
+          WITH n.nombreCompleto AS nombre1,r1.ponderacion AS ponderacion
+          ORDER BY ponderacion DESC LIMIT 1
+          RETURN nombre1
+      }}
+      CALL(p2){{
+          MATCH(p2)-[r1:TIENE_NOMBRE_COMPLETO]->(n)
+          WITH n.nombreCompleto AS nombre2,r1.ponderacion AS ponderacion
+          ORDER BY ponderacion DESC LIMIT 1
+          RETURN nombre2
+      }}
+      WITH *,
+        apoc.text.sorensenDiceSimilarity(nombre1,nombre2) AS nameSimilarity
+      WITH *,
+        {dataSimilarityWeight}*r.dataSimilarity + {nameSimilarityWeight}*nameSimilarity AS confidenceScore
+        WITH *,
+          [(p1)-[:TIENE_TELEFONO]-(pii:ValidTelefono) | elementId(pii)] AS p1Phones,
+          [(p2)-[:TIENE_TELEFONO]-(pii:ValidTelefono) | elementId(pii)] AS p2Phones,
+          [(p1)-[:NACIDO_EL]-(pii:ValidCalendario) | elementId(pii)] AS p1Dobs,
+          [(p2)-[:NACIDO_EL]-(pii:ValidCalendario) | elementId(pii)] AS p2Dobs,
+          [(p1)-[:TIENE_DOMICILIO]-(pii:ValidDomicilio) | elementId(pii)] AS p1Domicilios,
+          [(p2)-[:TIENE_DOMICILIO]-(pii:ValidDomicilio) | elementId(pii)] AS p2Domicilios,
+          [(p1)-[:TIENE_RFC]-(pii:ValidRFC) | elementId(pii)] AS p1RFCs,
+          [(p2)-[:TIENE_RFC]-(pii:ValidRFC) | elementId(pii)] AS p2RFCs,
+          [(p1)-[:TIENE_CORREO]-(pii:ValidEmail) | elementId(pii)] AS p1Emails,
+          [(p2)-[:TIENE_CORREO]-(pii:ValidEmail) | elementId(pii)] AS p2Emails
+        WITH *,
+          size(apoc.coll.intersection(p1Phones,p2Phones)) AS sharedPhones,
+          size(apoc.coll.intersection(p1Dobs,p2Dobs)) AS sharedDobs,
+          size(apoc.coll.intersection(p1Domicilios,p2Domicilios)) AS sharedDomicilios,
+          size(apoc.coll.intersection(p1RFCs,p2RFCs)) AS sharedRFCs,
+          size(apoc.coll.intersection(p1Emails,p2Emails)) AS sharedEmails
+        WITH *,
+          size(p1Phones) + size(p2Phones) - sharedPhones AS totalPhones,
+          size(p1Dobs) + size(p2Dobs) - sharedDobs AS totalDobs,
+          size(p1Domicilios) + size(p2Domicilios) - sharedDomicilios AS totalDomicilios,
+          size(p1RFCs) + size(p2RFCs) - sharedRFCs AS totalRFCs,
+          size(p1Emails) + size(p2Emails) - sharedEmails AS totalEmails
+        WITH *,
+          sharedPhones + sharedDobs + sharedDomicilios + sharedRFCs + sharedEmails AS totalSharedPii,
+          totalPhones + totalDobs + totalDomicilios + totalRFCs + totalEmails AS totalPii
+        RETURN elementId(r) AS rela_id,sharedDobs,sharedDomicilios,sharedEmails,sharedPhones,
+          sharedRFCs,totalSharedPii,totalPii,totalDobs,totalDomicilios,totalEmails,totalPhones,
+          totalRFCs,nameSimilarity,confidenceScore",
+        "MATCH(p1:{nodeLabel})-[r:{relaType}]->()
+        WHERE elementId(r)=rela_id
+        SET
+          r.sharedDobs=sharedDobs,
+          r.sharedDomicilios=sharedDomicilios,
+          r.sharedEmails=sharedEmails,
+          r.sharedPhones=sharedPhones,
+          r.sharedRFCs=sharedRFCs,
+          r.totalSharedPii=totalSharedPii,
+          r.totalPii=totalPii,
+          r.totalDobs=totalDobs,
+          r.totalDomicilios=totalDomicilios,
+          r.totalEmails=totalEmails,
+          r.totalPhones=totalPhones,
+          r.totalRFCs=totalRFCs,
+          r.nameSimilarity=nameSimilarity,
+          r.confidenceScore=confidenceScore
+        ",
+        {{
+          parallel:TRUE,
+          batchSize: 100000,
+          retries: 20
+        }}
+    )
+  deleteSharePiiRela: |
+    CALL apoc.periodic.iterate(
+      "MATCH(p1:Asegurado)-[r:SHARES_PII_WITH]->(p2)
+      WHERE r.totalPii=0
+      RETURN elementId(r) AS rela_id
+      ",
+        "MATCH(p1:Asegurado)-[r:SHARES_PII_WITH]->()
+        WHERE elementId(r)=rela_id
+        DELETE r
+        ",
+        {{
+          parallel:TRUE,
+          batchSize: 10000,
+          retries: 20
+        }}
+    )
+  isSameEntityWithRela: |
+    CALL apoc.periodic.iterate(
+      "MATCH(p1:{nodeLabel})-[r:{relaType}]->(p2)
+      WHERE r.confidenceScore > {confidenceThreshold}
+      RETURN 
+        elementId(r) AS rela_id 
+      ",
+        "MATCH(p1:{nodeLabel})-[r:{relaType}]->(p2)
+        WHERE elementId(r)=rela_id
+          AND NOT EXISTS((p1)-[:IS_SAME_ENTITY_WITH]->(p2))
+        CREATE (p1)-[r1:IS_SAME_ENTITY_WITH]->(p2)
+        SET
+          r1.sharedDobs=r.sharedDobs,
+          r1.sharedDomicilios=r.sharedDomicilios,
+          r1.sharedEmails=r.sharedEmails,
+          r1.sharedPhones=r.sharedPhones,
+          r1.sharedRFCs=r.sharedRFCs,
+          r1.totalSharedPii=r.totalSharedPii,
+          r1.totalPii=r.totalPii,
+          r1.totalDobs=r.totalDobs,
+          r1.totalDomicilios=r.totalDomicilios,
+          r1.totalEmails=r.totalEmails,
+          r1.totalPhones=r.totalPhones,
+          r1.totalRFCs=r.totalRFCs,
+          r1.nameSimilarity=r.nameSimilarity,
+          r1.confidenceScore=r.confidenceScore,
+          r1.dataSimilarity=r.dataSimilarity
+        ",
+        {{
+          parallel:TRUE,
+          batchSize: 10000,
+          retries: 20
+        }}
+    )
+  sameEntityProjection: |
+    MATCH(source:Asegurado)
+    WITH source
+    OPTIONAL MATCH(source)-[r:IS_SAME_ENTITY_WITH]->(target)
+    WHERE r.confidenceScore > {confidenceThreshold}
+    WITH gds.graph.project(
+      '{projName}',
+      source,
+      target,
+      {{
+        relationshipProperties:{{
+          confidence:r.confidenceScore
+        }}
+      }},
+      {{
+        readConcurrency:{concurrency}
+      }}
+    ) AS g
+    RETURN  g.graphName AS graphName,
+      g.nodeCount AS nodeCount,
+      g.relationshipCount AS relationshipCount,
+      g.projectMillis AS projectMillis
+  entityAseguradoNode: |
+    CALL apoc.periodic.iterate(
+      "MATCH(n:Asegurado)
+      WHERE n.louvainId IS NOT NULL
+      WITH n.louvainId AS clusterId,count(*) AS clusterSize
+      RETURN clusterId,clusterSize",
+      "MERGE(n:{nodeLabel} {{id:clusterId}})
+      SET n.size=clusterSize
+      ",
+      {{
+        parallel:True,
+        batchSize:10000
+      }}
+    )
+  createConstraint: |
+    CREATE CONSTRAINT nk{nodeLabel} IF NOT EXISTS FOR(n:{nodeLabel}) REQUIRE n.id IS NODE KEY
+  entidadRela: |
+    CALL apoc.periodic.iterate(
+      "MATCH(n:Asegurado)
+       WHERE n.louvainId IS NOT NULL
+       RETURN n.louvainId AS clusterId,elementId(n) AS node_id",
+      "MATCH(n1:Asegurado)
+       WHERE elementId(n1)=node_id
+       WITH *
+       MATCH(n2:EntidadAsegurado {id:clusterId})
+       WHERE NOT EXISTS((n1)-[:TIENE_ENTIDAD]->(n2))
+       CREATE (n1)-[:TIENE_ENTIDAD]->(n2)
+      ",
+      {
+        parallel:True,
+        batchSize:10000
+      }
+    )
+  deleteRela: |
+    CALL apoc.periodic.iterate(
+      "MATCH(:{nodeLabel})-[r:{relaType}]->()
+      RETURN elementId(r) AS relaId",
+      "MATCH(:{nodeLabel})-[r:{relaType}]->()
+      WHERE elementId(r) = relaId
+      WITH r
+      DELETE r",
+      {{
+        batchSize: 10000,
+        parallel: TRUE,
+        retries: 10
+      }}
+    );
+  deleteNode: |
+    CALL apoc.periodic.iterate(
+      "MATCH(n:{nodeLabel}) RETURN elementId(n) AS nodeId",
+      "MATCH(n:{nodeLabel}) 
+       WHERE elementId(n) = nodeId
+       WITH n
+       DETACH DELETE n
+      ",
+      {{
+        batchSize: 100000,
+        parallel: TRUE,
+        retries: 15
+      }}
+    )
+  removeLabel: |
+    CALL apoc.periodic.iterate(
+      "MATCH(n:{nodeLabel}) RETURN elementId(n) AS nodeId",
+      "MATCH(n:{nodeLabel}) 
+       WHERE elementId(n) = nodeId
+       REMOVE n:{nodeLabel}
+      ",
+      {{
+        batchSize: 100000,
+        parallel: TRUE,
+        retries: 15
       }}
     )
